@@ -1,0 +1,6 @@
+services:
+  printstream:
+    image: ${DOCKER_REGISTRY-}printstream
+    build:
+      context: .
+      dockerfile: Printstream/Dockerfile
