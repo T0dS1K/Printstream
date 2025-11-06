@@ -1,3 +1,5 @@
+using Printstream.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 namespace Printstream
 {
@@ -10,6 +12,8 @@ namespace Printstream
             builder.Services.AddSwaggerGen();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddDbContext<AppDbContext>(
+                options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             var app = builder.Build();
 
@@ -17,6 +21,7 @@ namespace Printstream
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                app.ApplyMigrations();
             }
 
             app.UseAuthorization();
