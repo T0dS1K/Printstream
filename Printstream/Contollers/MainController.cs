@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Printstream.Infrastructure;
+﻿using Printstream.Models.DTO;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Printstream.Contollers
 {
@@ -7,11 +7,10 @@ namespace Printstream.Contollers
     [Route("[controller]")]
     public class CategoryController : ControllerBase
     {
-        private readonly AppDbContext _context;
-
-        public CategoryController(AppDbContext context)
+        [HttpPost]
+        public IActionResult Post([FromForm] UserData UserData)
         {
-            _context = context;
+            return Ok();
         }
     }
 }
