@@ -2,9 +2,9 @@
 using Printstream.Attributes;
 using System.ComponentModel.DataAnnotations;
 
-namespace Printstream.Models.DTO
+namespace Printstream.Models
 {
-    public class UserData
+    public class UserDTO
     {
         [Required]
         [NameFormat]

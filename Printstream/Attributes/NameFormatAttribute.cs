@@ -7,7 +7,7 @@ namespace Printstream.Attributes
     {
         private const string _regex = @"^[А-ЯЁ][а-яё]{1,}(?:-[А-ЯЁ][а-яё]{1,})*$";
 
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult IsValid(object? value, ValidationContext validationContext)
         {
             if (value != null)
             {

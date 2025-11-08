@@ -21,7 +21,7 @@ namespace Printstream.Attributes
             ErrorMessage = $"The field {type} is invalid:";
         }
 
-        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        protected override ValidationResult IsValid(object? value, ValidationContext validationContext)
         {
             if (value != null)
             {
