@@ -1,27 +1,27 @@
 ﻿namespace Printstream.Models
 {
-    public class ApiResponse
+    public class ApiResponse<T>
     {
-        public string? SessionID { get; private set; }
+        public T? Data { get; private set; }
         public string? Message { get; private set; }
-        public string? ErrorCode { get; private set; }
+        public string? ErrorMessage { get; private set; }
 
-        public static ApiResponse Success(string SessionID, string Message)
+        public static ApiResponse<T> Success(T Data, string message)
         {
-            return new ApiResponse
+            return new ApiResponse<T>
             {
-                SessionID = SessionID,
-                Message = Message,
-                ErrorCode = null
+                Data = Data,
+                Message = message,
+                ErrorMessage = null
             };
         }
 
-        public static ApiResponse Error(string ErrorCode)
+        public static ApiResponse<T> Error(string error)
         {
-            return new ApiResponse
-            {
+            return new ApiResponse<T>
+            {                
                 Message = null,
-                ErrorCode = ErrorCode
+                ErrorMessage = error
             };
         }
     }

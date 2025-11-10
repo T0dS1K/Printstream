@@ -6,7 +6,7 @@ namespace Printstream.Infrastructure.Configurations
     public class Phone
     {
         public int ID { get; set; }
-        public string? Number { get; set; } = null!;
+        public string? phone { get; set; } = null!;
 
         public ICollection<Person> Person { get; set; } = new List<Person>();
     }
@@ -15,18 +15,16 @@ namespace Printstream.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Phone> builder)
         {
-            builder.ToTable("Phones");
-
             builder.HasKey(z => z.ID);
 
             builder.Property(z => z.ID)
                    .UseIdentityColumn();
 
-            builder.Property(z => z.Number)
+            builder.Property(z => z.phone)
                    .HasMaxLength(20)
                    .IsRequired();
 
-            builder.HasIndex(z => z.Number)
+            builder.HasIndex(z => z.phone)
                    .IsUnique();
         }
     }

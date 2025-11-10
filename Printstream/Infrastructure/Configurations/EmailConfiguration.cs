@@ -6,7 +6,7 @@ namespace Printstream.Infrastructure.Configurations
     public class Email
     {
         public int ID { get; set; }
-        public string? EmailAddress { get; set; } = null!;
+        public string? email { get; set; } = null!;
 
         public ICollection<Person> Person { get; set; } = new List<Person>();
     }
@@ -15,18 +15,16 @@ namespace Printstream.Infrastructure.Configurations
     {
         public void Configure(EntityTypeBuilder<Email> builder)
         {
-            builder.ToTable("Emails");
-
             builder.HasKey(z => z.ID);
 
             builder.Property(z => z.ID)
                    .UseIdentityColumn();
 
-            builder.Property(z => z.EmailAddress)
+            builder.Property(z => z.email)
                    .HasMaxLength(52)
                    .IsRequired();
 
-            builder.HasIndex(z => z.EmailAddress)
+            builder.HasIndex(z => z.email)
                    .IsUnique();
         }
     }

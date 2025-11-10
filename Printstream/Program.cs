@@ -16,6 +16,7 @@ namespace Printstream
             builder.Services.AddSwaggerGen();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddScoped<IDBService, DBService>();
             builder.Services.AddSingleton<IQueueService>(queueService);
             builder.Services.AddDbContext<AppDbContext>(
                 options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));

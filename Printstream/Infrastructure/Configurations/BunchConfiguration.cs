@@ -3,28 +3,28 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Printstream.Infrastructure.Configurations
 {
-    public class Address
+    public class Bunch
     {
         public int ID { get; set; }
-        public string? address { get; set; } = null!;
+        public string? bunch { get; set; } = null!;
 
         public ICollection<Person> Person { get; set; } = new List<Person>();
     }
 
-    public class AddressConfiguration : IEntityTypeConfiguration<Address>
+    public class BunchConfiguration : IEntityTypeConfiguration<Bunch>
     {
-        public void Configure(EntityTypeBuilder<Address> builder)
+        public void Configure(EntityTypeBuilder<Bunch> builder)
         {
             builder.HasKey(z => z.ID);
 
             builder.Property(z => z.ID)
                    .UseIdentityColumn();
 
-            builder.Property(z => z.address)
-                   .HasMaxLength(228)
+            builder.Property(z => z.bunch)
+                   .HasMaxLength(20)
                    .IsRequired();
 
-            builder.HasIndex(z => z.address)
+            builder.HasIndex(z => z.bunch)
                    .IsUnique();
         }
     }

@@ -34,15 +34,15 @@ namespace Printstream.Models
         public bool IsMale { get; set; }
 
         [Required]
-        [ArrayFormat("Address")]
+        [ValueFormat("Address")]
         [Description("Пример: г. Москва, ул. Земляной Вал 50А | г. Санкт-Петербург, пр-т. Невский 15/2 | г. Казань, ул. Толстого 10Б, стр. 5 | г. Новосибирск, пр-т. Мира 2, кв. 101 | г. Курск, ул. Ленина 30-1, оф. 2 | г. Томск, ул. Студенческая 15, пом. 7/2")]
         public HashSet<string>? Addresses { get; set; }
 
-        [ArrayFormat("Phone")]
+        [ValueFormat("Phone")]
         [Description("Пример: +7(XXX)XXX-XX-XX")]
         public HashSet<string>? Phones { get; set; }
 
-        [ArrayFormat("Email")]
+        [ValueFormat("Email")]
         [Description("Пример: mail@example.com")]
         public HashSet<string>? Emails { get; set; }
     }

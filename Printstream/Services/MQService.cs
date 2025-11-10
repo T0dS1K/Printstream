@@ -1,9 +1,7 @@
-﻿using Printstream.Models;
+﻿using System.Text;
 using RabbitMQ.Client;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Channels;
-
+using Printstream.Models;
 namespace Printstream.Services
 {
     public interface IQueueService

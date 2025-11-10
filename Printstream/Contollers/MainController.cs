@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Printstream.Attributes;
+using Printstream.Infrastructure.Configurations;
 using Printstream.Models;
 using Printstream.Services;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Printstream.Contollers
 {
@@ -8,24 +12,60 @@ namespace Printstream.Contollers
     [Route("[controller]")]
     public class MainController : ControllerBase
     {
+        private IDBService _dBService { get; }
         private IQueueService _queueService { get; }
 
-        public MainController(IQueueService queueService)
-        {
+        public MainController(IDBService dBService, IQueueService queueService)
+        { 
+            _dBService = dBService;
             _queueService = queueService;
         }
 
-        [HttpPost]
-        public async Task<ActionResult<ApiResponse>> AddUser([FromForm] UserDTO Data)
+        [HttpPost("addData")]
+        public async Task<ActionResult<ApiResponse<string>>> AddUser([FromForm] UserDTO Data)
         {
             var sessionID = Guid.NewGuid().ToString();
 
             if (await _queueService.AddTaskToQueue(new UserSession(sessionID, Data)))
             {
-                return ApiResponse.Success(sessionID, "200");
+                return ApiResponse<string>.Success(sessionID, "Entry added to queue");
             }
 
-            return ApiResponse.Error("400"); ;
+            return ApiResponse<string>.Error("Entry cannot be added to the queue");
+        }
+
+        [HttpGet("searchFIO")]
+        public async Task<ActionResult<ApiResponse<List<PersonAggregatedDTO>>>> SearchFIO([Required][DefaultValue("")][NameFormat] string LastName, [NameFormat] string? FirstName, [NameFormat] string? MiddleName)
+        {
+            var data = await _dBService.FindPersonsDataFIO(LastName!, FirstName, MiddleName);
+
+            if (data == null || data.Count == 0)
+            {
+                return ApiResponse<List<PersonAggregatedDTO>>.Error("Not Found");
+            }
+            
+            return ApiResponse<List<PersonAggregatedDTO>>.Success(data, "Data received successfully");   
+        }
+
+        [HttpGet("searchValue")]
+        public async Task<ActionResult<ApiResponse<List<PersonAggregatedDTO>>>> SearchValue([Required][DefaultValue("")][Description("Адрес | Номер | Почта")] string Value)
+        {
+            ValueFormatAttribute VFA = new("");
+            var result = VFA.IsValid(Value);
+
+            if (result)
+            {
+                var data = await _dBService.FindPersonsDataValue(VFA.GetType(), Value);
+
+                if (data == null || data.Count == 0)
+                {
+                    return ApiResponse<List<PersonAggregatedDTO>>.Error("Not Found");
+                }
+
+                return ApiResponse<List<PersonAggregatedDTO>>.Success(data, "Data received successfully");
+            }
+                
+            return ApiResponse<List<PersonAggregatedDTO>>.Error("Invalid value format");
         }
     }
 }

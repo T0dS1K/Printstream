@@ -1,3 +1,5 @@
+using DeduplicatorWorker.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Printstream.Models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -11,15 +13,17 @@ namespace DeduplicatorWorker
         private string _queueName { get; }
         private IChannel _channel { get; }
         private IConnection _connection { get; }
+        private IServiceProvider _serviceProvider { get; }
 
-        private Worker(IConnection connection, IChannel channel, string queueName)
+        private Worker(IServiceProvider serviceProvider, IConnection connection, IChannel channel, string queueName)
         {
             _channel = channel;
             _queueName = queueName;
             _connection = connection;
+            _serviceProvider = serviceProvider;
         }
 
-        public async static Task<Worker> CreateAsync(string queueName, string HostName)
+        public async static Task<Worker> CreateAsync(IServiceProvider serviceProvider, string queueName, string HostName)
         {
             var factory = new ConnectionFactory { HostName = HostName };
             var connection = await factory.CreateConnectionAsync();
@@ -35,7 +39,7 @@ namespace DeduplicatorWorker
                                             autoDelete: false,
                                             arguments: null);
 
-            return new Worker(connection, channel, queueName);
+            return new Worker(serviceProvider, connection, channel, queueName);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -44,21 +48,24 @@ namespace DeduplicatorWorker
 
             consumer.ReceivedAsync += async (model, ea) =>
             {
-                try 
+                using (var scope = _serviceProvider.CreateScope())
                 {
-                    var body = ea.Body.ToArray();
-                    var json = Encoding.UTF8.GetString(body);
-                    var UnserializeData = JsonSerializer.Deserialize<UserSession>(json);
-                    /*
-                     *
-                     */
-                    Console.WriteLine($" [x] {UnserializeData?.Data.LastName}_{UnserializeData?.Data.FirstName}_{UnserializeData?.Data.DateOfBirth}");
-                    await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"Worker failed to process data: {ex.Message}");
-                    await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true);
+                    try
+                    {
+                        var deduplicator = scope.ServiceProvider.GetRequiredService<IDeduplicator>();
+                        var body = ea.Body.ToArray();
+                        var json = Encoding.UTF8.GetString(body);
+                        var unserializeData = JsonSerializer.Deserialize<UserSession>(json);
+                        var Message = await deduplicator.TryAddUser(unserializeData!);
+
+                        Console.WriteLine($" [x] {Message}");
+                        await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"Worker failed to process data: {ex.Message}");
+                        await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
+                    }
                 }
             };
 

@@ -6,60 +6,46 @@ namespace Printstream.Infrastructure.Configurations
     public class Person
     {
         public int ID { get; set; }
-        public string? LastName { get; set; } = null!;
-        public string? FirstName { get; set; } = null!;
-        public string? MiddleName { get; set; } = null!;
-        public DateOnly DateOfBirth { get; set; }
-        public bool IsMale { get; set; }
+        public int BunchID { get; set; }
+        public int PersonDataID { get; set; }
 
-        public ICollection<Address> Addresses { get; set; } = new List<Address>();
-        public ICollection<Phone>   Phones    { get; set; } = new List<Phone>();
-        public ICollection<Email>   Emails    { get; set; } = new List<Email>();
+        public Bunch Bunch { get; set; } = null!;
+        public PersonData PersonData { get; set; } = null!;
+        public ICollection<Phone>   Phone   { get; set; } = new List<Phone>();
+        public ICollection<Email>   Email   { get; set; } = new List<Email>();
+        public ICollection<Address> Address { get; set; } = new List<Address>();
     }
 
     public class PersonConfiguration : IEntityTypeConfiguration<Person>
     {
         public void Configure(EntityTypeBuilder<Person> builder)
         {
-            builder.ToTable("Persons");
-
             builder.HasKey(z => z.ID);
 
             builder.Property(z => z.ID)
                    .UseIdentityColumn();
 
-            builder.Property(z => z.LastName)
-                   .HasMaxLength(100)
-                   .IsRequired();
-
-            builder.Property(z => z.FirstName)
-                   .HasMaxLength(100)
-                   .IsRequired();
-
-            builder.Property(z => z.MiddleName)
-                   .HasMaxLength(100)
-                   .IsRequired();
-
-            builder.Property(z => z.DateOfBirth)
-                   .IsRequired();
-
-            builder.Property(z => z.IsMale)
-                   .IsRequired();
-
-            builder.HasMany(z => z.Addresses)
+            builder.HasOne(z => z.PersonData)
                    .WithMany(z => z.Person)
-                   .UsingEntity(j => j.ToTable("Person_Addresses"));
+                   .HasForeignKey(z => z.PersonDataID)
+                   .IsRequired();
 
-            builder.HasMany(z => z.Phones)
+            builder.HasOne(z => z.Bunch)
                    .WithMany(z => z.Person)
-                   .UsingEntity(j => j.ToTable("Person_Phones"));
+                   .HasForeignKey(z => z.BunchID)
+                   .IsRequired();
 
-            builder.HasMany(z => z.Emails)
+            builder.HasMany(z => z.Phone)
                    .WithMany(z => z.Person)
-                   .UsingEntity(j => j.ToTable("Person_Emails"));
+                   .UsingEntity(z => z.ToTable("Person_Phone"));
 
-            builder.HasIndex(z => new { z.LastName, z.FirstName, z.MiddleName });
+            builder.HasMany(z => z.Email)
+                   .WithMany(z => z.Person)
+                   .UsingEntity(z => z.ToTable("Person_Email"));
+
+            builder.HasMany(z => z.Address)
+                   .WithMany(z => z.Person)
+                   .UsingEntity(z => z.ToTable("Person_Address"));
         }
     }
 }
-//cd C:\Users\T0dS1K\Desktop\Printstream\Printstream; dotnet ef migrations add Printstream
