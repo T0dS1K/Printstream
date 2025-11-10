@@ -10,7 +10,7 @@ namespace Printstream.Infrastructure.Configurations
         public int BunchID { get; set; }
         public DateTime DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
-        public string OperationType { get; set; } = null!;
+        public string Operation { get; set; } = null!;
 
         public Person Person { get; set; } = null!;
         public Bunch Bunch { get; set; } = null!;
@@ -25,28 +25,22 @@ namespace Printstream.Infrastructure.Configurations
             builder.Property(z => z.ID)
                    .UseIdentityColumn();
 
-            builder.Property(z => z.OperationType)
-                   .HasMaxLength(50)
+            builder.HasOne(z => z.Person)
+                   .WithMany()
+                   .HasForeignKey(z => z.PersonID)
+                   .IsRequired();
+
+            builder.HasOne(z => z.Bunch)
+                   .WithMany()
+                   .HasForeignKey(z => z.BunchID)
                    .IsRequired();
 
             builder.Property(z => z.DateFrom)
                    .IsRequired();
 
-            builder.HasOne(z => z.Person)
-                   .WithMany()
-                   .HasForeignKey(z => z.PersonID)
-                   .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasOne(z => z.Bunch)
-                   .WithMany()
-                   .HasForeignKey(z => z.BunchID)
-                   .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasIndex(z => z.PersonID);
-            builder.HasIndex(z => z.BunchID);
-            builder.HasIndex(z => z.DateFrom);
-            builder.HasIndex(z => z.DateTo);
-            builder.HasIndex(z => new { z.PersonID, z.DateFrom, z.DateTo });
+            builder.Property(z => z.Operation)
+                   .HasMaxLength(50)
+                   .IsRequired();
         }
     }
 }

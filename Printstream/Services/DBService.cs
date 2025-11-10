@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Printstream.Infrastructure;
+using Printstream.Infrastructure.Configurations;
 using Printstream.Models;
 
 namespace Printstream.Services
@@ -8,6 +9,7 @@ namespace Printstream.Services
     {
         Task<List<PersonAggregatedDTO>> FindPersonsDataFIO(string lastName, string? firstName, string? middleName);
         Task<List<PersonAggregatedDTO>> FindPersonsDataValue(string type, string Data);
+        Task<List<Bunch_History>> FindPersonsDataHistory();
     }
     
     public class DBService : IDBService
@@ -82,6 +84,11 @@ namespace Printstream.Services
             {
                 throw;
             }
+        }
+
+        public async Task<List<Bunch_History>> FindPersonsDataHistory()
+        {
+            return await _context.Bunch_History.ToListAsync();
         }
     }
 }

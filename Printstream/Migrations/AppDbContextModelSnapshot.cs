@@ -126,7 +126,7 @@ namespace Printstream.Migrations
                     b.Property<DateTime?>("DateTo")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("OperationType")
+                    b.Property<string>("Operation")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -138,13 +138,7 @@ namespace Printstream.Migrations
 
                     b.HasIndex("BunchID");
 
-                    b.HasIndex("DateFrom");
-
-                    b.HasIndex("DateTo");
-
                     b.HasIndex("PersonID");
-
-                    b.HasIndex("PersonID", "DateFrom", "DateTo");
 
                     b.ToTable("Bunch_History");
                 });

@@ -117,7 +117,7 @@ namespace Printstream.Migrations
                     BunchID = table.Column<int>(type: "integer", nullable: false),
                     DateFrom = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DateTo = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    OperationType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                    Operation = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -226,24 +226,9 @@ namespace Printstream.Migrations
                 column: "BunchID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Bunch_History_DateFrom",
-                table: "Bunch_History",
-                column: "DateFrom");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Bunch_History_DateTo",
-                table: "Bunch_History",
-                column: "DateTo");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Bunch_History_PersonID",
                 table: "Bunch_History",
                 column: "PersonID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Bunch_History_PersonID_DateFrom_DateTo",
-                table: "Bunch_History",
-                columns: new[] { "PersonID", "DateFrom", "DateTo" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Email_email",

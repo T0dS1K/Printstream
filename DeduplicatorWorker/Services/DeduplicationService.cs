@@ -12,9 +12,9 @@ namespace DeduplicatorWorker.Services
 
     public class DeduplicationService : IDeduplicator
     {
+        private Bunch newBunch { get; }
+        private Person newPerson { get; }
         private AppDbContext _context { get; }
-        private Bunch newBunch { get; set; }
-        private Person newPerson { get; set; }
 
         public DeduplicationService(AppDbContext context)
         {
@@ -55,8 +55,17 @@ namespace DeduplicatorWorker.Services
 
                     newPerson.BunchID = newBunch.ID;
                     newPerson.PersonDataID = newPersonData.ID;
-
                     _context.Person.Add(newPerson);
+                    await _context.SaveChangesAsync();
+
+                    _context.Bunch_History.Add(new Bunch_History
+                    {
+                        PersonID = newPerson.ID,
+                        BunchID = newBunch.ID,
+                        DateFrom = DateTime.UtcNow,
+                        Operation = "ADD"
+                    });
+
                     await TryAddContacts(User.Data);
                 }
                 else
@@ -92,11 +101,26 @@ namespace DeduplicatorWorker.Services
 
                     if (crossingPersons.Any())
                     {
-                        await MergeBunches(crossingPersons, newPerson.BunchID);
+                        var mergeEntries = await MergeBunches(crossingPersons, newPerson.BunchID);
+                        
+                        if (mergeEntries.Any())
+                        {
+                            _context.Bunch_History.AddRange(mergeEntries);
+                        }
                     }
 
                     newPerson.PersonDataID = personData.ID;
                     _context.Person.Add(newPerson);
+                    await _context.SaveChangesAsync();
+
+                    _context.Bunch_History.Add(new Bunch_History
+                    {
+                        PersonID = newPerson.ID,
+                        BunchID = newPerson.BunchID,
+                        DateFrom = DateTime.UtcNow,
+                        Operation = crossingPersons.Any() ? "JOIN" : "ADD"
+                    });
+
                     await TryAddContacts(User.Data);
                 }
 
@@ -124,7 +148,7 @@ namespace DeduplicatorWorker.Services
             return bunch;
         }
 
-        private async Task MergeBunches(List<Person> crossingPersons, int newBunchID)
+        private async Task<List<Bunch_History>> MergeBunches(List<Person> crossingPersons, int newBunchID)
         {
             var oldBunchIDs = crossingPersons
                 .Select(z => z.BunchID)
@@ -132,15 +156,36 @@ namespace DeduplicatorWorker.Services
                 .Distinct()
                 .ToList();
 
-            if (!oldBunchIDs.Any()) return;
+            if (!oldBunchIDs.Any()) return new List<Bunch_History>();
+
+            var CurrentTime = DateTime.UtcNow;
+
+            await _context.Bunch_History
+                .Where(z => oldBunchIDs.Contains(z.BunchID) && z.DateTo == null)
+                .ExecuteUpdateAsync(z => z.SetProperty(z => z.DateTo, CurrentTime));
+
+            var PersonIDsToUpdate = await _context.Person
+                .Where(z => oldBunchIDs.Contains(z.BunchID))
+                .Select(z => z.ID)
+                .ToListAsync();
+
+            var newHistoryEntries = PersonIDsToUpdate.Select(PersonID => new Bunch_History
+            {
+                PersonID = PersonID,
+                BunchID = newBunchID,
+                DateFrom = CurrentTime,
+                Operation = "MERGE"
+            }).ToList();
 
             await _context.Person
                 .Where(z => oldBunchIDs.Contains(z.BunchID))
                 .ExecuteUpdateAsync(z => z.SetProperty(z => z.BunchID, newBunchID));
 
-            await _context.Bunch
+            /*await _context.Bunch
                 .Where(z => oldBunchIDs.Contains(z.ID))
-                .ExecuteDeleteAsync();
+                .ExecuteDeleteAsync();*/
+
+            return newHistoryEntries;
         }
 
         private bool CheckContactSetRelation(IEnumerable<string?> existingContacts, ICollection<string>? newContacts, bool flag)

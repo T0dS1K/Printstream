@@ -24,7 +24,7 @@ namespace Printstream.Contollers
         [HttpPost("addData")]
         public async Task<ActionResult<ApiResponse<string>>> AddUser([FromForm] UserDTO Data)
         {
-            var sessionID = Guid.NewGuid().ToString();
+            var sessionID = Guid.NewGuid().ToString("N");
 
             if (await _queueService.AddTaskToQueue(new UserSession(sessionID, Data)))
             {
@@ -34,7 +34,7 @@ namespace Printstream.Contollers
             return ApiResponse<string>.Error("Entry cannot be added to the queue");
         }
 
-        [HttpGet("searchFIO")]
+        [HttpGet("searchName")]
         public async Task<ActionResult<ApiResponse<List<PersonAggregatedDTO>>>> SearchFIO([Required][DefaultValue("")][NameFormat] string LastName, [NameFormat] string? FirstName, [NameFormat] string? MiddleName)
         {
             var data = await _dBService.FindPersonsDataFIO(LastName!, FirstName, MiddleName);
@@ -66,6 +66,19 @@ namespace Printstream.Contollers
             }
                 
             return ApiResponse<List<PersonAggregatedDTO>>.Error("Invalid value format");
+        }
+
+        [HttpGet("searchHistory")]
+        public async Task<ActionResult<ApiResponse<List<Bunch_History>>>> SearchValue()
+        {
+            var data = await _dBService.FindPersonsDataHistory();
+
+            if (data == null || data.Count == 0)
+            {
+                return ApiResponse<List<Bunch_History>>.Error("Not Found");
+            }
+
+            return ApiResponse<List<Bunch_History>>.Success(data, "Data received successfully");
         }
     }
 }
