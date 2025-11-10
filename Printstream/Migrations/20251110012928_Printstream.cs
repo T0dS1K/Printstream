@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -107,6 +108,35 @@ namespace Printstream.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Bunch_History",
+                columns: table => new
+                {
+                    ID = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PersonID = table.Column<int>(type: "integer", nullable: false),
+                    BunchID = table.Column<int>(type: "integer", nullable: false),
+                    DateFrom = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DateTo = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    OperationType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Bunch_History", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_Bunch_History_Bunch_BunchID",
+                        column: x => x.BunchID,
+                        principalTable: "Bunch",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Bunch_History_Person_PersonID",
+                        column: x => x.PersonID,
+                        principalTable: "Person",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Person_Address",
                 columns: table => new
                 {
@@ -191,6 +221,31 @@ namespace Printstream.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Bunch_History_BunchID",
+                table: "Bunch_History",
+                column: "BunchID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bunch_History_DateFrom",
+                table: "Bunch_History",
+                column: "DateFrom");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bunch_History_DateTo",
+                table: "Bunch_History",
+                column: "DateTo");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bunch_History_PersonID",
+                table: "Bunch_History",
+                column: "PersonID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bunch_History_PersonID_DateFrom_DateTo",
+                table: "Bunch_History",
+                columns: new[] { "PersonID", "DateFrom", "DateTo" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Email_email",
                 table: "Email",
                 column: "email",
@@ -237,6 +292,9 @@ namespace Printstream.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Bunch_History");
+
             migrationBuilder.DropTable(
                 name: "Person_Address");
 

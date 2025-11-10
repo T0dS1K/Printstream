@@ -12,6 +12,7 @@ namespace Printstream.Infrastructure
         public DbSet<Address> Address { get; set; } = null!;
         public DbSet<Phone> Phone { get; set; } = null!;
         public DbSet<Email> Email { get; set; } = null!;
+        public DbSet<Bunch_History> Bunch_History { get; set; } = null!;
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 

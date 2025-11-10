@@ -26,7 +26,7 @@ namespace Printstream.Models
         [Required]
         [DateFormat]
         [DefaultValue("")]
-        [Description("Пример: ММ.ДД.ГГГГ")]
+        [Description("Пример: ДД.ММ.ГГГГ")]
         public string? DateOfBirth { get; set; }
 
         [Required]

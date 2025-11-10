@@ -69,9 +69,9 @@ namespace DeduplicatorWorker.Services
                         .ToListAsync();
 
                     var subsetMatch = dataExistingPersons.FirstOrDefault(z =>
-                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Data.Addresses, true) &&
-                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Data.Phones,    true) &&
-                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Data.Emails,    true)
+                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Data.Addresses, false) &&
+                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Data.Phones,    false) &&
+                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Data.Emails,    false)
                     );
 
                     if (subsetMatch != null)
@@ -80,9 +80,9 @@ namespace DeduplicatorWorker.Services
                     }
 
                     var crossingPersons = dataExistingPersons.Where(z =>
-                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Data.Addresses, false) ||
-                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Data.Phones,    false) ||
-                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Data.Emails,    false)
+                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Data.Addresses, true) &&
+                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Data.Phones,    true) &&
+                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Data.Emails,    true)
                     ).ToList();
 
                     newBunch.bunch = await BunchGenerator();
@@ -90,7 +90,7 @@ namespace DeduplicatorWorker.Services
                     await _context.SaveChangesAsync();
                     newPerson.BunchID = newBunch.ID;
 
-                    if (crossingPersons.Select(z => z.BunchID).Distinct().Count() > 1)
+                    if (crossingPersons.Any())
                     {
                         await MergeBunches(crossingPersons, newPerson.BunchID);
                     }
@@ -124,11 +124,11 @@ namespace DeduplicatorWorker.Services
             return bunch;
         }
 
-        private async Task MergeBunches(List<Person> intersectingPeople, int primaryBunchId)
+        private async Task MergeBunches(List<Person> crossingPersons, int newBunchID)
         {
-            var oldBunchIDs = intersectingPeople
+            var oldBunchIDs = crossingPersons
                 .Select(z => z.BunchID)
-                .Where(id => id != primaryBunchId)
+                .Where(z => z != newBunchID)
                 .Distinct()
                 .ToList();
 
@@ -136,7 +136,7 @@ namespace DeduplicatorWorker.Services
 
             await _context.Person
                 .Where(z => oldBunchIDs.Contains(z.BunchID))
-                .ExecuteUpdateAsync(z => z.SetProperty(z => z.BunchID, primaryBunchId));
+                .ExecuteUpdateAsync(z => z.SetProperty(z => z.BunchID, newBunchID));
 
             await _context.Bunch
                 .Where(z => oldBunchIDs.Contains(z.ID))
@@ -149,11 +149,18 @@ namespace DeduplicatorWorker.Services
                 .Where(z => !string.IsNullOrEmpty(z))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            if (!flag)
+            if (flag)
             {
-                if (!existingSet.Any() || newContacts?.Any() != true)
+                if (!existingSet.Any())
                 {
-                    return false;
+                    return true;
+                }
+                else
+                {
+                    if (newContacts?.Any() != true)
+                    {
+                        return false;
+                    }
                 }
 
                 return newContacts.Any(existingSet.Contains);
