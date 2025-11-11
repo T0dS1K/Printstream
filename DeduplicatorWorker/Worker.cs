@@ -50,20 +50,30 @@ namespace DeduplicatorWorker
             {
                 using (var scope = _serviceProvider.CreateScope())
                 {
+                    string SessionID = String.Empty;
+
                     try
                     {
                         var deduplicator = scope.ServiceProvider.GetRequiredService<IDeduplicator>();
                         var body = ea.Body.ToArray();
                         var json = Encoding.UTF8.GetString(body);
                         var unserializeData = JsonSerializer.Deserialize<UserSession>(json);
-                        var Message = await deduplicator.TryAddUser(unserializeData!);
 
-                        Console.WriteLine($" [x] {Message}");
-                        await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
+                        if (unserializeData != null)
+                        {
+                            SessionID = unserializeData.SessionID!;
+                            var Message = await deduplicator.TryAddUser(unserializeData.Data);
+                            Console.WriteLine($" [x] {Message} {SessionID}");
+                            await _channel.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
+                        }
+                        else
+                        {
+                            throw new ArgumentException("unserializeData is null");
+                        }   
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine($"Worker failed to process data: {ex.Message}");
+                        Console.Error.WriteLine($"Worker failed to process data: {ex.Message} {SessionID}");
                         await _channel.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false);
                     }
                 }
