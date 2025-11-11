@@ -7,13 +7,14 @@ namespace DeduplicatorWorker.Services
 {
     public interface IDeduplicator
     {
-        Task<string> TryAddUser(UserSession User);
+        Task<string> TryAddUser(UserProfile User);
     }
 
     public class DeduplicationService : IDeduplicator
     {
         private Bunch newBunch { get; }
         private Person newPerson { get; }
+        private PersonData newPersonData { get; }
         private AppDbContext _context { get; }
 
         public DeduplicationService(AppDbContext context)
@@ -21,33 +22,33 @@ namespace DeduplicatorWorker.Services
             _context = context;
             newBunch = new Bunch();
             newPerson = new Person();
+            newPersonData = new PersonData();
         }
 
-        public async Task<string> TryAddUser(UserSession User)
+        public async Task<string> TryAddUser(UserProfile User)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
                 var personData = await _context.PersonData
-                    .FirstOrDefaultAsync(z =>
-                                         z.LastName == User.Data.LastName &&
-                                         z.FirstName == User.Data.FirstName &&
-                                         z.MiddleName == User.Data.MiddleName &&
-                                         z.DateOfBirth == User.Data.DateOfBirth &&
-                                         z.IsMale == User.Data.IsMale);
+                    .Where(z =>
+                                         User.IsMale ? z.LastName == User.LastName : true &&
+                                         z.FirstName == User.FirstName &&
+                                         z.MiddleName == User.MiddleName &&
+                                         z.DateOfBirth == User.DateOfBirth &&
+                                         z.IsMale == User.IsMale)
+                    .ToListAsync();
 
                 if (personData == null)
                 {
                     newBunch.bunch = await BunchGenerator();
-                    var newPersonData = new PersonData
-                    {
-                        LastName = User.Data.LastName,
-                        FirstName = User.Data.FirstName,
-                        MiddleName = User.Data.MiddleName,
-                        DateOfBirth = User.Data.DateOfBirth,
-                        IsMale = User.Data.IsMale
-                    };
+
+                    newPersonData.LastName = User.LastName;
+                    newPersonData.FirstName = User.FirstName;
+                    newPersonData.MiddleName = User.MiddleName;
+                    newPersonData.DateOfBirth = User.DateOfBirth;
+                    newPersonData.IsMale = User.IsMale;
 
                     _context.Bunch.Add(newBunch);
                     _context.PersonData.Add(newPersonData);
@@ -66,21 +67,25 @@ namespace DeduplicatorWorker.Services
                         Operation = "ADD"
                     });
 
-                    await TryAddContacts(User.Data);
+                    await TryAddContacts(User);
                 }
                 else
                 {
-                    var dataExistingPersons = await _context.Person
+                    var personDataIDs = personData.Select(p => p.ID).ToList();
+                    var existingPersonData = personData.FirstOrDefault(p => p.LastName == User.LastName);
+
+                    var existingPersonsData = await _context.Person
                         .Include(z => z.Address)
                         .Include(z => z.Phone)
                         .Include(z => z.Email)
-                        .Where(z => z.PersonDataID == personData.ID)
+                        .Where(z => personDataIDs.Contains(z.PersonDataID))
                         .ToListAsync();
 
-                    var subsetMatch = dataExistingPersons.FirstOrDefault(z =>
-                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Data.Addresses, false) &&
-                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Data.Phones,    false) &&
-                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Data.Emails,    false)
+                    var subsetMatch = existingPersonsData.FirstOrDefault(z => 
+                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Addresses, false) &&
+                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Phones,    false) &&
+                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Emails,    false) &&
+                        (existingPersonData == null ? false : true)
                     );
 
                     if (subsetMatch != null)
@@ -88,10 +93,10 @@ namespace DeduplicatorWorker.Services
                         throw new InvalidOperationException("Duplicate detected");
                     }
 
-                    var crossingPersons = dataExistingPersons.Where(z =>
-                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Data.Addresses, true) &&
-                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Data.Phones,    true) &&
-                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Data.Emails,    true)
+                    var crossingPersons = existingPersonsData.Where(z =>
+                        CheckContactSetRelation(z.Address.Select(v => v.address), User.Addresses, true) &&
+                        CheckContactSetRelation(z.Phone.Select(v => v.phone),     User.Phones,    true) &&
+                        CheckContactSetRelation(z.Email.Select(v => v.email),     User.Emails,    true)
                     ).ToList();
 
                     newBunch.bunch = await BunchGenerator();
@@ -109,7 +114,23 @@ namespace DeduplicatorWorker.Services
                         }
                     }
 
-                    newPerson.PersonDataID = personData.ID;
+                    if (existingPersonData != null)
+                    {
+                        newPerson.PersonDataID = existingPersonData.ID;
+                    }
+                    else
+                    {
+                        newPersonData.LastName = User.LastName;
+                        newPersonData.FirstName = User.FirstName;
+                        newPersonData.MiddleName = User.MiddleName;
+                        newPersonData.DateOfBirth = User.DateOfBirth;
+                        newPersonData.IsMale = User.IsMale;
+
+                        _context.PersonData.Add(newPersonData);
+                        await _context.SaveChangesAsync();
+                        newPerson.PersonDataID = newPersonData.ID;
+                    }
+                    
                     _context.Person.Add(newPerson);
                     await _context.SaveChangesAsync();
 
@@ -121,7 +142,7 @@ namespace DeduplicatorWorker.Services
                         Operation = crossingPersons.Any() ? "JOIN" : "ADD"
                     });
 
-                    await TryAddContacts(User.Data);
+                    await TryAddContacts(User);
                 }
 
                 await _context.SaveChangesAsync();

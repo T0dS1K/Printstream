@@ -6,7 +6,7 @@ namespace Printstream.Services
 {
     public interface IQueueService
     {
-        Task<bool> AddTaskToQueue(UserSession UserData);
+        Task<bool> AddTaskToQueue(UserSession Data);
     }
 
     public class MQService : IQueueService, IDisposable
